@@ -5,7 +5,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Реализация IResolver. Читает файл CSV и отвечает на запросы,
+ * Реализация IResolver. Читает CSV‑файл и отвечает на запросы,
  * используя Stream‑API.
  */
 public class ChampionshipResolver implements IResolver {
@@ -16,55 +16,85 @@ public class ChampionshipResolver implements IResolver {
         loadPlayers(filename);
     }
 
-    /** Читает CSV‑файл, заполняет список {@link #players}. */
+    /**
+     * Читает CSV‑файл и заполняет {@link #players}.
+     * <p>
+     * Если в отдельной строке встречается некорректное число,
+     * мы выводим предупреждение и продолжаем обработку остальных строк.
+     * </p>
+     */
     private void loadPlayers(String filename) {
         try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
-            String line = br.readLine(); // заголовок, просто игнорируем
+            String line = br.readLine(); // заголовок, игнорируем
 
             while ((line = br.readLine()) != null) {
-                String[] parts = line.split(";");
-                // 0  Name
-                // 1  Team
-                // 2  City
-                // 3  Position
-                // 4  Nationality
-                // 5  Agency (может быть пустым)
-                // 6  Transfer cost
-                // 7  Participations
-                // 8  Goals
-                // 9  Assists
-                //10  Yellow cards
-                //11  Red cards
-                String name = parts[0];
-                String team = parts[1];
-                String city = parts[2];
-                String position = parts[3];
-                String nationality = parts[4];
-                String agency = parts[5].isEmpty() ? null : parts[5];
-                long transferCost = parts[6].isEmpty() ? 0L : Long.parseLong(parts[6]);
-                int participations = parts[7].isEmpty() ? 0 : Integer.parseInt(parts[7]);
-                int goals = parts[8].isEmpty() ? 0 : Integer.parseInt(parts[8]);
-                int assists = parts[9].isEmpty() ? 0 : Integer.parseInt(parts[9]);
-                int yellow = parts[10].isEmpty() ? 0 : Integer.parseInt(parts[10]);
-                int red = parts[11].isEmpty() ? 0 : Integer.parseInt(parts[11]);
+                String[] p = line.split(";");
+                try {
+                    //--- 0..5 всегда строки -------------------------------------------------
+                    String name        = p[0];
+                    String team        = p[1];
+                    String city        = p[2];
+                    String position    = p[3];
+                    String nationality = p[4];
+                    String agency      = p[5].isEmpty() ? null : p[5];
 
-                players.add(new Player(name, team, city, position, nationality,
-                        agency, transferCost, participations,
-                        goals, assists, yellow, red));
+                    //--- 6..11 – числовые поля. Если парсинг упадёт, бросаем NFE,
+                    //---            а catch‑блок ниже «заполняет нулями».
+                    long   transferCost = parseLong(p[6]);
+                    int    participations = parseInt(p[7]);
+                    int    goals          = parseInt(p[8]);
+                    int    assists        = parseInt(p[9]);
+                    int    yellowCards    = parseInt(p[10]);
+                    int    redCards       = parseInt(p[11]);
+
+                    players.add(new Player(name, team, city, position, nationality,
+                            agency, transferCost, participations, goals,
+                            assists, yellowCards, redCards));
+                } catch (NumberFormatException e) {
+                    // Не удалось распарсить одну из числовых колонок.
+                    // Выводим сообщение, но **не прерываем чтение файла**.
+                    System.err.println(
+                            "Warning: malformed numeric value in line -> \"" + line + "\". " +
+                                    "Row will be added with zero‑values for the broken fields.");
+                    // Добавляем «порожнюю» запись, где все числовые поля 0.
+                    String name        = p[0];
+                    String team        = p[1];
+                    String city        = p[2];
+                    String position    = p[3];
+                    String nationality = p[4];
+                    String agency      = p[5].isEmpty() ? null : p[5];
+
+                    players.add(new Player(name, team, city, position, nationality,
+                            agency, 0L, 0, 0, 0, 0, 0));
+                }
             }
         } catch (IOException e) {
-            System.err.println("Не удалось прочитать файл \"" + filename + "\": " + e.getMessage());
+            System.err.println("Ошибка при чтении файла \"" + filename + "\": " + e.getMessage());
             e.printStackTrace();
+        }
+        // **Обращаем внимание:** отдельный catch для NumberFormatException теперь
+        // не нужен – он обрабатывается внутри цикла.
+    }
+
+    /** Приводит строку к long, возвращая 0 при любой ошибке формата. */
+    private long parseLong(String value) {
+        try {
+            return Long.parseLong(value);
         } catch (NumberFormatException e) {
-            System.err.println("Ошибка парсинга чисел в файле \"" + filename + "\": " + e.getMessage());
-            e.printStackTrace();
+            return 0L;
         }
     }
 
-    // -----------------------------------------------------------------
-    // Методы IResolver (все используют Stream API)
-    // -----------------------------------------------------------------
+    /** Приводит строку к int, возвращая 0 при любой ошибке формата. */
+    private int parseInt(String value) {
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
 
+    // -------------------- Реализация IResolver (осталось без изменений) --------------------
     @Override
     public List<Player> getPlayers() {
         return new ArrayList<>(players);
@@ -133,7 +163,7 @@ public class ChampionshipResolver implements IResolver {
                         Map.Entry::getKey,
                         Map.Entry::getValue,
                         (e1, e2) -> e1,
-                        LinkedHashMap::new   // сохраняем порядок
+                        LinkedHashMap::new
                 ));
     }
 

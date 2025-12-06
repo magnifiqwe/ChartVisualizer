@@ -1,75 +1,69 @@
 package org.example.championship;
 
 import org.jfree.chart.ChartFactory;
-import org.jfree.chart.ChartPanel;
+import org.jfree.chart.ChartPanel;          // <-- импортируем ChartPanel
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.PlotOrientation;
-import org.jfree.data.category.CategoryDataset;
 import org.jfree.data.category.DefaultCategoryDataset;
+
 import javax.swing.*;
 import java.awt.*;
 import java.util.Map;
-import java.util.stream.Collectors;
 
+/**
+ * Окно, которое рисует столбчатую диаграмму
+ * «Топ‑10 команд по суммарной трансферной стоимости».
+ *
+ * Конструктор принимает **DataMapper**.
+ */
 public class ChartVisualizer extends JFrame {
-    private ChampionshipResolver resolver;
 
-    public ChartVisualizer(ChampionshipResolver resolver) {
-        this.resolver = resolver;
-        initializeUI();
+    private final DataMapper mapper;
+
+    /** Поле, которое будем проверять в тесте */
+    private ChartPanel chartPanel;   // <-- добавляем поле
+
+    public ChartVisualizer(DataMapper mapper) {
+        this.mapper = mapper;
+        initUI();
     }
 
-    private void initializeUI() {
-        setTitle("Топ-10 команд по суммарной трансферной стоимости");
+    private void initUI() {
+        setTitle("Топ‑10 команд по суммарной трансферной стоимости");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1000, 600);
         setLocationRelativeTo(null);
 
-        CategoryDataset dataset = createDataset();
+        // Создаём набор данных и диаграмму
+        DefaultCategoryDataset dataset = createDataset();
         JFreeChart barChart = ChartFactory.createBarChart(
-                "Топ-10 команд по суммарной трансферной стоимости",
-                "Команды",
-                "Суммарная трансферная стоимость",
+                "Топ‑10 команд",
+                "Команда",
+                "Сумма (в руб.)",
                 dataset,
                 PlotOrientation.VERTICAL,
                 true, true, false);
 
-        ChartPanel chartPanel = new ChartPanel(barChart);
-        chartPanel.setPreferredSize(new Dimension(900, 500));
-        setContentPane(chartPanel);
+        // <-- сохраняем ChartPanel в поле, чтобы тест мог к нему обратиться
+        this.chartPanel = new ChartPanel(barChart);
+        this.chartPanel.setPreferredSize(new Dimension(900, 500));
+        setContentPane(this.chartPanel);
     }
 
-    private CategoryDataset createDataset() {
-        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-
-        Map<String, Long> teamTransferCosts = resolver.getPlayers().stream()
-                .collect(Collectors.groupingBy(
-                        Player::getTeam,
-                        Collectors.summingLong(Player::getTransferCost)
-                ));
-
-        teamTransferCosts.entrySet().stream()
-                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-                .limit(10)
-                .forEach(entry -> dataset.addValue(
-                        entry.getValue(),
-                        "Суммарная стоимость",
-                        entry.getKey()
-                ));
-
-        return dataset;
+    /** Приватный помощник – создаёт набор данных из mapper‑а */
+    private DefaultCategoryDataset createDataset() {
+        DefaultCategoryDataset ds = new DefaultCategoryDataset();
+        Map<String, Long> data = mapper.getTop10TeamsByTransferCost();
+        data.forEach((team, cost) -> ds.addValue(cost, "Сумма", team));
+        return ds;
     }
 
+    /** Точка входа – удобно для локального запуска */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            try {
-                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-            ChampionshipResolver resolver = new ChampionshipResolver("fakePlayers.csv");
-            new ChartVisualizer(resolver).setVisible(true);
+            ChampionshipResolver resolver = new ChampionshipResolver("src/main/resources/fakePlayers.csv");
+            DataMapper mapper = new DataMapper(resolver);
+            new ChartVisualizer(mapper).setVisible(true);
         });
     }
 }

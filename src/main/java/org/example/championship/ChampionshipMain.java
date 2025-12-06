@@ -5,7 +5,7 @@ import java.util.Set;
 
 public class ChampionshipMain {
     public static void main(String[] args) {
-        ChampionshipResolver resolver = new ChampionshipResolver("fakePlayers.csv");
+        ChampionshipResolver resolver = new ChampionshipResolver("src/main/resources/fakePlayers.csv");
 
         System.out.println("1. Количество игроков без агентства: " + resolver.getCountWithoutAgency());
 
