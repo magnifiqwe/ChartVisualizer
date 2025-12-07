@@ -1,0 +1,33 @@
+name: CI – Maven + JaCoCo
+
+# Запускаем при push в main/master и при открытии/обновлении PR в эти ветки
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest                         # отдельный Linux‑runner
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin                     # AdoptOpenJDK‑temurin
+          java-version: 21
+          cache: maven
+
+      - name: Build, test & JaCoCo check
+        run: mvn -B clean verify                     # -B – batch‑mode (без интерактивных вопросов)
+
+      - name: Upload JaCoCo HTML report
+        uses: actions/upload-artifact@v3
+        with:
+          name: jacoco-report
+          path: target/site/jacoco               # <-- директория, где Maven пишет HTML‑отчёт
+          retention-days: 7                     # хранить 7 дней (можно изменить)

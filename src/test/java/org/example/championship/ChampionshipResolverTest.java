@@ -51,7 +51,7 @@ class ChampionshipResolverTest {
 
     @Test
     void testGetMaxDefenderGoalsCount() {
-        // Защитники: P1 (5 голов), P3 (8 голов) → максимум 8
+        // Защитники: P1 (5 голов), P3 (8 голов) → максимум 8
         assertEquals(8, resolver.getMaxDefenderGoalsCount());
     }
 
@@ -81,8 +81,8 @@ class ChampionshipResolverTest {
     void testGetTop5TeamsByGoalsCount() {
         Map<String, Integer> top = resolver.getTop5TeamsByGoalsCount();
         // Считаем вручную:
-        // T1 → 5 + 7 = 12
-        // T2 → 8 + 3 = 11
+        // T1 → 5 + 7 = 12
+        // T2 → 8 + 3 = 11
         // T3 → 0
         assertEquals(12, top.get("T1"));
         assertEquals(11, top.get("T2"));
@@ -99,7 +99,7 @@ class ChampionshipResolverTest {
 
     @Test
     void testGetTheRudestTeam() {
-        // Red cards: P1 0, P2 1, P3 2, P4 0, P5 1
+        // Red cards: P1 0, P2 1, P3 2, P4 0, P5 1
         // Среднее:
         // T1 → (0+1)/2 = 0.5
         // T2 → (2+1)/2 = 1.5  <-- max
